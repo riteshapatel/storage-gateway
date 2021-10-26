@@ -1,5 +1,9 @@
 # main.tf
 
+provider "aws" {
+  region = var.region 
+}
+
 module "label" {
   source      = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.16.0"
   namespace   = var.namespace
@@ -130,12 +134,6 @@ resource "aws_security_group" "this" {
   }
 }
 
-resource "aws_eip" "this" {
-  instance = aws_instance.this.id
-  vpc      = true
-  tags     = module.label.tags
-}
-
 resource "aws_instance" "this" {
   ami                         = var.ami != "" ? var.ami : data.aws_ami.this.id
   instance_type               = var.instance_type
@@ -143,6 +141,7 @@ resource "aws_instance" "this" {
   subnet_id                   = var.subnet_id
   vpc_security_group_ids      = [aws_security_group.this.id]
   tags                        = module.ec2_label.tags
+  volume_tags                 = var.volume_tags
 }
 
 resource "aws_ebs_volume" "this" {
@@ -163,9 +162,23 @@ resource "aws_volume_attachment" "this" {
 ######################
 ## STORAGE GATEWAY ##
 ####################
+resource "null_resource" "patience" {
+  depends_on = [aws_instance.this]
+  triggers = {
+    private_ip = aws_instance.this.private_ip
+  }
+  provisioner "local-exec" {
+    command = "sleep 180"
+  }
+}
+
+data "http" "this" {
+  url = "http://${aws_instance.this.private_ip}/?activationRegion=${var.region}&no_redirect"
+  depends_on = [null_resource.patience]
+}
 
 resource "aws_storagegateway_gateway" "this" {
-  gateway_ip_address = aws_eip.this.public_ip
+  activation_key     = data.http.this.body
   gateway_name       = module.label.id
   gateway_timezone   = var.gateway_timezone
   gateway_type       = "FILE_S3"
@@ -185,6 +198,7 @@ data "aws_storagegateway_local_disk" "this" {
   disk_node   = aws_volume_attachment.this.device_name
   gateway_arn = aws_storagegateway_gateway.this.arn
 }
+
 
 resource "aws_storagegateway_cache" "this" {
   disk_id     = data.aws_storagegateway_local_disk.this.id

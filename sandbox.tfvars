@@ -1,0 +1,6 @@
+namespace = "vrtx"
+stage = "minder"
+environment = "sandbox"
+subnet_id = "subnet-023772b50df27cd33"
+vpc_id = "vpc-0f646c53cbc1bcc20"
+bucket_arn = "arn:aws:s3:::minder-nfs-file-share"

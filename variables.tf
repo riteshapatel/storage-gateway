@@ -1,5 +1,9 @@
 # variables.tf
-
+variable "region" {
+  type = string 
+  default = "us-east-1"
+  description = "AWS Region"
+}
 # storage_gateway.tf
 
 variable "namespace" {
@@ -38,7 +42,7 @@ variable "attributes" {
 
 variable "tags" {
   type        = map(string)
-  default     = {}
+  default     = {"Application": "SciCompSBX"}
   description = "Additional tags (e.g. `map('BusinessUnit','XYZ')`)"
 }
 
@@ -90,6 +94,12 @@ variable "volume_type" {
   default     = "gp2"
   type        = string
   description = "The type of EBS volume to use for the gateway cache volume."
+}
+
+variable "volume_tags" {
+  default = {"Application": "SciCompSBX"}
+  type = map(string)
+  description = "A map of tags to assign, at instance-creation time, to root and EBS volumes"
 }
 
 ######################
